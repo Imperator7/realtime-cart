@@ -9,7 +9,7 @@ export const cartItemSchema = z.object({
 
 export const cartSchema = z.array(cartItemSchema)
 
-let cart: z.infer<typeof cartSchema> = [
+export let cart: z.infer<typeof cartSchema> = [
   { id: '1', name: 'Coffee', quantity: 2, price: 20 },
 ]
 

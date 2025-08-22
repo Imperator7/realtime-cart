@@ -1,63 +1,64 @@
-import { z } from "zod";
+import { z } from 'zod'
 
 export const cartItemSchema = z.object({
   name: z.string().min(1),
   price: z.number().positive(),
   quantity: z.number().int().min(1),
-});
+})
 
-export const cartSchema = z.array(cartItemSchema);
+export const cartSchema = z.array(cartItemSchema)
 
-type CartItem = z.infer<typeof cartItemSchema>;
-type Cart = ReadonlyArray<CartItem>;
+type CartItem = z.infer<typeof cartItemSchema>
+type Cart = ReadonlyArray<CartItem>
 
-type AddResult = CartItem | "InvalidItem" | "DuplicateItem";
-type UpdateResult = CartItem | "NotFound" | "InvalidQuantity";
-type DeleteResult = CartItem | "NotFound";
+type AddResult = CartItem | 'InvalidItem' | 'DuplicateItem'
+type UpdateResult = CartItem | 'NotFound' | 'InvalidQuantity'
+type DeleteResult = CartItem | 'NotFound'
 
 interface CartRepo {
-  getAll: () => Cart;
-  add: (item: CartItem) => AddResult;
-  update: (name: string, quantity: number) => UpdateResult;
-  delete: (name: string) => DeleteResult;
+  getAll: () => Cart
+  add: (item: CartItem) => AddResult
+  update: (name: string, quantity: number) => UpdateResult
+  delete: (name: string) => DeleteResult
 }
 
 export const createMockCartRepo = (): CartRepo => {
-  const mockCart: CartItem[] = [];
+  const mockCart: CartItem[] = []
+  const deepClone = (i: CartItem): CartItem => ({ ...i })
 
   return {
-    getAll: () => [...mockCart],
+    getAll: () => mockCart.map(deepClone),
     add: (item: CartItem) => {
-      const parsed = cartItemSchema.safeParse(item);
-      if (!parsed.success) return "InvalidItem";
+      const parsed = cartItemSchema.safeParse(item)
+      if (!parsed.success) return 'InvalidItem'
       if (
         mockCart.filter((itemCart) => itemCart.name === item.name).length !== 0
       )
-        return "DuplicateItem";
-      mockCart.push(parsed.data);
-      return parsed.data;
+        return 'DuplicateItem'
+      mockCart.push(parsed.data)
+      return deepClone(parsed.data)
     },
     update: (name: string, quantity: number) => {
       if (quantity < 1) {
-        return "InvalidQuantity";
+        return 'InvalidQuantity'
       }
       const targetIndex = mockCart.findIndex(
         (item: CartItem) => item.name === name
-      );
+      )
 
       if (targetIndex !== -1) {
-        mockCart[targetIndex].quantity = quantity;
-        return mockCart[targetIndex];
+        mockCart[targetIndex].quantity = quantity
+        return deepClone(mockCart[targetIndex])
       }
 
-      return "NotFound";
+      return 'NotFound'
     },
     delete: (name: string) => {
-      const targetIndex = mockCart.findIndex((item) => item.name === name);
-      if (targetIndex === -1) return "NotFound";
+      const targetIndex = mockCart.findIndex((item) => item.name === name)
+      if (targetIndex === -1) return 'NotFound'
 
-      const removedItem = mockCart.splice(targetIndex, 1)[0];
-      return removedItem;
+      const removedItem = mockCart.splice(targetIndex, 1)[0]
+      return removedItem
     },
-  };
-};
+  }
+}

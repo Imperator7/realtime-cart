@@ -9,11 +9,11 @@ export const cartItemSchema = z.object({
 export const cartSchema = z.array(cartItemSchema);
 
 type CartItem = z.infer<typeof cartItemSchema>;
-type Cart = z.infer<typeof cartSchema>;
+type Cart = ReadonlyArray<CartItem>;
 
-type AddResult = CartItem | "InvalidItem";
-type UpdateResult = CartItem | "NotFound" | "InvalidInput";
-type DeleteResult = Cart | "NotFound";
+type AddResult = CartItem | "InvalidItem" | "DuplicateItem";
+type UpdateResult = CartItem | "NotFound" | "InvalidQuantity";
+type DeleteResult = CartItem | "NotFound";
 
 interface CartRepo {
   getAll: () => Cart;
@@ -23,19 +23,23 @@ interface CartRepo {
 }
 
 export const createMockCartRepo = (): CartRepo => {
-  const mockCart: Cart = [];
+  const mockCart: CartItem[] = [];
 
   return {
-    getAll: () => [...mockCart] as const,
+    getAll: () => [...mockCart],
     add: (item: CartItem) => {
       const parsed = cartItemSchema.safeParse(item);
       if (!parsed.success) return "InvalidItem";
+      if (
+        mockCart.filter((itemCart) => itemCart.name === item.name).length !== 0
+      )
+        return "DuplicateItem";
       mockCart.push(parsed.data);
       return parsed.data;
     },
     update: (name: string, quantity: number) => {
       if (quantity < 1) {
-        return "InvalidInput";
+        return "InvalidQuantity";
       }
       const targetIndex = mockCart.findIndex(
         (item: CartItem) => item.name === name
@@ -52,8 +56,8 @@ export const createMockCartRepo = (): CartRepo => {
       const targetIndex = mockCart.findIndex((item) => item.name === name);
       if (targetIndex === -1) return "NotFound";
 
-      mockCart.splice(targetIndex, 1);
-      return [...mockCart] as const;
+      const removedItem = mockCart.splice(targetIndex, 1)[0];
+      return removedItem;
     },
   };
 };

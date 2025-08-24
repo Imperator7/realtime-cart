@@ -1,9 +1,14 @@
-import { cart, cartItemSchema } from '@/lib/cart'
-import { z } from 'zod'
+export const runtime = 'nodejs'
 
-export async function GET(request: Request) {
+import { z } from 'zod'
+import { getCartRepo } from '@/lib/cartRepo'
+import { cartItemSchema } from '@/repositories/cartRepo.mock'
+
+export async function GET() {
   try {
-    return Response.json({ success: true, cart: cart }, { status: 200 })
+    const repo = getCartRepo()
+    const items = repo.getAll()
+    return Response.json({ success: true, cart: items }, { status: 200 })
   } catch (error) {
     return Response.json(
       { success: false, error: 'Failed to fetch cart' },
@@ -17,9 +22,27 @@ export async function POST(request: Request) {
     const data = await request.json()
     const newItem = cartItemSchema.parse(data)
 
-    cart.push(newItem)
+    const repo = getCartRepo()
+    const res = repo.add(newItem)
 
-    return Response.json({ success: true, cart: cart }, { status: 201 })
+    if (res === 'DuplicateItem') {
+      return Response.json(
+        { success: false, error: 'Duplicate item added' },
+        { status: 409 }
+      )
+    }
+
+    if (res === 'InvalidItem') {
+      return Response.json(
+        { success: false, error: 'InvalidItem' },
+        { status: 400 }
+      )
+    }
+
+    return Response.json(
+      { success: true, cart: repo.getAll() },
+      { status: 201 }
+    )
   } catch (error) {
     if (error instanceof z.ZodError) {
       return Response.json(
@@ -35,7 +58,7 @@ export async function POST(request: Request) {
     return Response.json(
       {
         success: false,
-        error: 'Failed to add item to the cart',
+        error: 'ServerError',
       },
       { status: 500 }
     )

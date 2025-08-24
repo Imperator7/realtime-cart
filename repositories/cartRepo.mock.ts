@@ -8,8 +8,8 @@ export const cartItemSchema = z.object({
 
 export const cartSchema = z.array(cartItemSchema)
 
-type CartItem = z.infer<typeof cartItemSchema>
-type Cart = ReadonlyArray<CartItem>
+export type CartItem = z.infer<typeof cartItemSchema>
+export type Cart = ReadonlyArray<CartItem>
 
 type AddResult = CartItem | 'InvalidItem' | 'DuplicateItem'
 type UpdateResult = CartItem | 'NotFound' | 'InvalidQuantity'
@@ -42,16 +42,17 @@ export const createMockCartRepo = (): CartRepo => {
       if (quantity < 1) {
         return 'InvalidQuantity'
       }
+      console.log(name)
       const targetIndex = mockCart.findIndex(
         (item: CartItem) => item.name === name
       )
 
-      if (targetIndex !== -1) {
-        mockCart[targetIndex].quantity = quantity
-        return deepClone(mockCart[targetIndex])
+      if (targetIndex === -1) {
+        return 'NotFound'
       }
 
-      return 'NotFound'
+      mockCart[targetIndex].quantity = quantity
+      return deepClone(mockCart[targetIndex])
     },
     delete: (name: string) => {
       const targetIndex = mockCart.findIndex((item) => item.name === name)
